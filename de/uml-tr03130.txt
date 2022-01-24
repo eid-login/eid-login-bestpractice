@@ -1,0 +1,66 @@
+@startuml
+title eID-Verknüpfung oder eID-Login - TR-03130
+actor "Browser"
+participant SP
+participant "eID-Client"
+participant "eID-Server"
+autonumber
+Browser -> SP: Aufruf Endpunkt eID-Verknüpfung **oder** eID-Login
+SP -> SP: Cookie-ID erstellen und\n speichern in Cookie
+SP -> SP : Sitzung-Daten\n erfassen bzw. erstellen\n und persistieren
+note over SP
+Sitzung Daten umfassen:
+* Anfrage-ID (der aktuellen SAML Anfrage)
+* Ablauf-ID (eID-Verknüpfung oder eID-Login)
+* Cookie-ID
+* Benutzer-ID (des aktuellen Benutzers bei eID-Verknüpfung, leer bei eID-Login)
+* Aktueller Zeitstempel
+* Weiterleitung-URL nach Abschluss
+end note
+SP -> SP: TcTokenRedirect-URL erstellen
+SP --> Browser: Weiterleitung zu eID-Client mit Übergabe der TcTokenRedirect-URL
+note right of Browser
+Für den folgenden Aufruf des eID-Client
+muss dieser lokal vom Benutzer gestartet worden sein
+end note
+Browser -> "eID-Client": Aufruf von http://127.0.0.1:24727/eID-Client?tcTokenURL=TcTokenRedirect-URL 
+"eID-Client" -> SP: Aufruf TcTokenRedirect-URL
+SP -> SP: AuthnRequest-URL erstellen
+note over SP
+Die AuthnRequest-URL repräsentiert
+die SAML Anfrage an den IdP
+end note
+SP --> "eID-Client": Weiterleitung zu AuthnRequest-URL
+"eID-Client" -> "eID-Server": Aufruf AuthnRequest-URL
+note over "eID-Client", "eID-Server"
+eID-Server und eID-Client ermitteln eID mit zugehörigen Daten
+end note
+return Weiterleitung zu Redirect ACS-URL mit SAML-Assertion
+"eID-Client" -> SP: Aufruf Redirect ACS-URL
+SP -> SP: Prüfen der SAML-Assertion und Sitzung-Daten
+note over SP
+* SAML-Assertion auf validen Signatur-Algorithmus prüfen
+* Laden der Sitzung-Daten anhand der in InResponseTo enthaltenen Anfrage-ID
+* Prüfen der Sitzung-Daten (Ablauf-ID, Alter der Sitzung-Daten)
+end note
+SP -> SP: Antwort-Daten\n erfassen bzw. erstellen\n und persistieren
+note over SP
+* Antwort-ID (erstellen)
+* Fehler aus SAML-Assertion
+* Status der SAML-Assertion
+* eID-Daten aus SAML-Assertion
+* aktueller Zeitstempel
+* Sitzung-Daten
+end note
+SP --> "eID-Client": Übergabe Resume-URL mit Antwort-ID
+"eID-Client" --> Browser: Weiterleitung zu Resume-URL mit Antwort-ID
+Browser -> SP: Aufruf Resume-URL mit Antwort-ID
+SP -> SP: Anwort-Daten laden anhand von Antwort-ID und prüfen
+note over SP
+* Cookie-ID aus Sitzung-Daten in Cookie
+* Alter der Antwort-Daten
+* Status und Fehler aus SAML-Assertion
+end note
+SP -> SP: Verknüpfung der eID mit Benutzer\n laut Benutzer-ID aus Sitzung-Daten\n **oder**\n Anmelden eines mit der\n eID verknüpften Benutzers
+SP --> Browser: Weiterleitung zu Weiterleitung-URL\n aus Sitzung-Daten
+@enduml

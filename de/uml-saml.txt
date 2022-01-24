@@ -1,0 +1,56 @@
+@startuml
+title eID-Verknüpfung oder eID-Login - SAML
+actor "Browser"
+participant SP
+participant IdP
+autonumber
+Browser -> SP: Aufruf Endpunkt eID-Verknüpfung **oder** eID-Login
+SP -> SP: Cookie-ID erstellen und\n speichern in Cookie
+SP -> SP : Sitzung-Daten\n erfassen bzw. erstellen\n und persistieren
+note over SP
+Sitzung Daten umfassen:
+* Anfrage-ID (der aktuellen SAML Anfrage)
+* Ablauf-ID (eID-Verknüpfung oder eID-Login)
+* Cookie-ID
+* Benutzer-ID (des aktuellen Benutzers bei eID-Verknüpfung, leer bei eID-Login)
+* Aktueller Zeitstempel
+* Weiterleitung-URL nach Abschluss
+end note
+SP -> SP: AuthnRequest-URL erstellen
+note over SP
+Die AuthnRequest-URL repräsentiert
+die SAML Anfrage an den IdP
+end note
+SP --> Browser: Weiterleitung zu AuthnRequest-URL
+Browser -> IdP: Aufruf AuthnRequest-URL
+note left of IdP
+IdP ermittelt eID mit zugehörigen Daten
+end note
+return Weiterleitung zu Post ACS-URL mit SAML-Assertion
+Browser -> SP: Aufruf Post ACS-URL mit SAML-Assertion
+SP -> SP: Prüfen der SAML-Assertion und Sitzung-Daten
+note over SP
+* SAML-Assertion auf validen Signatur-Algorithmus prüfen
+* Laden der Sitzung-Daten anhand der in InResponseTo enthaltenen Anfrage-ID
+* Prüfen der Sitzung-Daten (Ablauf-ID, Alter der Sitzung-Daten)
+end note
+SP -> SP: Antwort-Daten\n erfassen bzw. erstellen\n und persistieren
+note over SP
+* Antwort-ID (erstellen)
+* Fehler aus SAML-Assertion
+* Status der SAML-Assertion
+* eID-Daten aus SAML-Assertion
+* Aktueller Zeitstempel
+* Sitzung-Daten
+end note
+SP --> Browser: Weiterleitung zu Resume-URL mit Antwort-ID
+Browser -> SP: Aufruf Resume-URL mit Antwort-ID
+SP -> SP: Anwort-Daten laden anhand von Antwort-ID und prüfen
+note over SP
+* Cookie-ID aus Sitzung-Daten in Cookie
+* Alter der Response-Daten
+* Status und Fehler der SAML-Assertion
+end note
+SP -> SP: Verknüpfung der eID mit Benutzer\n laut Benutzer-ID aus Sitzung-Daten\n **oder**\n Anmelden eines mit der\n eID verknüpften Benutzers
+SP --> Browser: Weiterleitung zu Weiterleitung-URL\n aus Sitzung-Daten
+@enduml
